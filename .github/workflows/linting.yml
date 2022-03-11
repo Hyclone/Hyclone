@@ -19,4 +19,4 @@ jobs:
       - name: python-lint
         uses: jpetrucciani/mypy-check@master
         with:
-          mypy_flags: "--install-types"
+          mypy_flags: ""

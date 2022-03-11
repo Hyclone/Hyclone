@@ -20,9 +20,12 @@ def _start_world(name: str):
 	pass
 
 def _start_worlds():
+	if not minetest_path.exists():
+		cprint("Minetest Server isn't build yet!", "red")
+		exit(1)
 	for world in os.listdir("./worlds"):
 		print(world)
-		subprocess.run(f"minetest --server --world worlds/{world}")
+		subprocess.run(f"{minetest_path} --server --world worlds/{world}")
 		
 
 def start():
@@ -90,8 +93,13 @@ def _update_build_server():
 		cprint("Updating Failed!", "red")
 		exit(1)
 
+def _link_game_server():
+	subprocess.run(["ln", "-s", "./games/MineClone2", "./server/minetest/games/MineClone2"])
 
 def _compile_server():
+	"""
+	Compile the files contained in ./server/minetest
+	"""
 	cprint("Building Minetest....", "green")
 
 	r1 = subprocess.run(["cmake", "-DRUN_IN_PLACE=TRUE", "-DBUILD_SERVER=TRUE", "-DBUILD_CLIENT=FALSE"], cwd="./server/minetest")
@@ -102,13 +110,14 @@ def _compile_server():
 		exit(1)
 
 def build_server(update: bool = True):
+	"""
+	Build the Minetest server
+	"""
 	if update:
 		if os.path.exists("./server/minetest") and os.path.exists("./server/irrlicht"):
-			print("update")
 			_update_build_server()
 			_compile_server()
 		else:
-			print("hard")
 			_hard_build_server()
 			_compile_server
 	else:
