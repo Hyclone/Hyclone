@@ -18,3 +18,5 @@ jobs:
         uses: nebularg/actions-luacheck@v1.1.0
       - name: python-lint
         uses: jpetrucciani/mypy-check@master
+        with:
+          mypy_flags: "--install-types"
