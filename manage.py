@@ -94,8 +94,8 @@ def _update_build_server():
 def _compile_server():
 	cprint("Building Minetest....", "green")
 
-	r1 = subprocess.run(["cmake", "-DRUN_IN_PLACE=TRUE", "-DBUILD_SERVER=TRUE", "-DBUILD_CLIENT=FALSE", "./server/minetest"])
-	r2 = subprocess.run(["make", "--directory=./server/minetest", "-j$(nproc)"], shell=True)
+	r1 = subprocess.run(["cmake", "-DRUN_IN_PLACE=TRUE", "-DBUILD_SERVER=TRUE", "-DBUILD_CLIENT=FALSE"], cwd="./server/minetest")
+	r2 = subprocess.run(["make", "-j$(nproc)"], cwd="./server/minetest", shell=True)
 
 	if r1.returncode != 0 or r2.returncode != 0:
 		cprint("Building Failed!", "red")
