@@ -32,6 +32,7 @@ def start():
 	minetest_processes: List[subprocess.Popen] = {}
 
 	def _on_exit(a,b):
+		cprint("Exiting Multiserver....", "yellow")
 		if multiserver_process:
 			multiserver_process.terminate()
 		exit(0)
@@ -40,7 +41,9 @@ def start():
 	signal.signal(signal.SIGINT, _on_exit)
 
 	multiserver_process = subprocess.Popen(["./multiserver/mt-multiserver-proxy"])
-	print(type(multiserver_process))
+	while True:
+		if multiserver_process.poll():
+			exit(1)
 
 
 git_minetest = "https://github.com/minetest/minetest"
