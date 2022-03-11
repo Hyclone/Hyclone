@@ -15,9 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: luacheck
-        uses: nebularg/actions-luacheck@v1.1.0
-      - name: Python Dependency Installation
-        uses: py-actions/py-dependency-install@v3.0.0
+        uses: nebularg/actions-luacheck@v1.1.
       - name: python-lint
         uses: jpetrucciani/mypy-check@master
         with:
