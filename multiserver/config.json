@@ -2,7 +2,35 @@
 	"Servers": [
 		{
 			"Name": "lobby",
-			"Addr": "minetest.local:30000"
+			"Addr": "minetest.local:30001"
 		}
-	]
+	],
+	"BindAddr": ":30000",
+	"RequirePasswd": true,
+	"UserLimit": 100,
+	"ForceDefaultSrv": true,
+	"CSMRF": {
+		"NoCSMs": false,
+		"ChatMsgs": true,
+		"ItemDefs": true,
+		"NodeDefs": true,
+		"NoLimitMapRange": true,
+		"PlayerList": true
+	},
+	"DropCSMRF": true,
+	"MapRange": 0,
+	"List": {
+		"Enable": false,
+		"Addr": "servers.minetest.net",
+		"Interval": 300,
+		"Name": "Hyclone",
+		"Desc": "A minigame server",
+		"URL": "",
+		"Creative": false,
+		"Dmg": true,
+		"PvP": true,
+		"Game": "MineClone2",
+		"FarNames": false,
+		"Mods": []
+	}
 }

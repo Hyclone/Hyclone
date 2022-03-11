@@ -14,6 +14,8 @@ import pathlib
 from typing import *
 from termcolor import cprint
 
+minetest_path = pathlib.Path("server/minetest/bin/minetest")
+
 def _start_world(name: str):
 	pass
 
@@ -54,29 +56,22 @@ def _remove_old_files_server():
 	cprint("Removing Old Files....", "green")
 
 	subprocess.run(["rm", "-rf", "./server/minetest"])
-	subprocess.run(["rm", "-rf", "./server/irrlichtmt"])
+	subprocess.run(["rm", "-rf", "./server/irrlicht"])
 
 
 def _hard_build_server():
 	cprint("Cloning Minetest....", "green")
 
 	r = subprocess.run(["git", "clone", git_minetest, "./server/minetest"])
-	if r != 0:
+	if r.returncode != 0:
 		cprint("Cloning Failed!", "red")
 		exit(1)
 	
 	cprint("Cloning IrrlichtMT....", "green")
 
-	r = subprocess.run(["git", "clone", git_irrlicht, "./server/irrlicht"])
-	if r != 0:
+	r = subprocess.run(["git", "clone", git_irrlicht, "./server/minetest/lib/irrlichtmt"])
+	if r.returncode != 0:
 		cprint("Cloning Failed!", "red")
-		exit(1)
-	
-	cprint("Linking IrrlichtMT to Minetest....", "green")
-
-	r = subprocess.run(["ln", "-s", "./server/irrlicht", "./server/minetest/lib/irrlichtmt"])
-	if r != 0:
-		cprint("Linking failed!", "red")
 		exit(1)
 
 
@@ -84,14 +79,14 @@ def _update_build_server():
 	cprint("Updating Minetest....", "green")
 
 	r = subprocess.run(["git", "pull"], cwd="./server/minetest")
-	if r != 0:
+	if r.returncode != 0:
 		cprint("Updating Failed!", "red")
 		exit(1)
 	
 	cprint("Updating IrrlichtMT....", "green")
 
 	r = subprocess.run(["git", "clone", git_irrlicht, "./server/irrlicht"])
-	if r != 0:
+	if r.returncode != 0:
 		cprint("Updating Failed!", "red")
 		exit(1)
 
@@ -99,10 +94,10 @@ def _update_build_server():
 def _compile_server():
 	cprint("Building Minetest....", "green")
 
-	r1 = subprocess.run(["cmake", "./server/minetest -DRUN_IN_PLACE=TRUE"])
-	r2 = subprocess.run(["make", "--directory=./server/minetest"])
+	r1 = subprocess.run(["cmake", "-DRUN_IN_PLACE=TRUE", "-DBUILD_SERVER=TRUE", "-DBUILD_CLIENT=FALSE", "./server/minetest"])
+	r2 = subprocess.run(["make", "--directory=./server/minetest", "-j$(nproc)"], shell=True)
 
-	if r1 != 0 or r2 != 0:
+	if r1.returncode != 0 or r2.returncode != 0:
 		cprint("Building Failed!", "red")
 		exit(1)
 
@@ -111,14 +106,14 @@ def build_server(update: bool = True):
 		if os.path.exists("./server/minetest") and os.path.exists("./server/irrlicht"):
 			print("update")
 			_update_build_server()
-			#_compile_server()
+			_compile_server()
 		else:
 			print("hard")
 			_hard_build_server()
-			#_compile_server
+			_compile_server
 	else:
-		#_remove_old_files_server()
-		#_hard_build_server()
+		_remove_old_files_server()
+		_hard_build_server()
 		
 		_compile_server()
 	
