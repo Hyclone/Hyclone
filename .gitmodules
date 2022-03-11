@@ -1,0 +1,3 @@
+[submodule "games/MineClone2"]
+	path = games/MineClone2
+	url = https://git.minetest.land/MineClone2/MineClone2
