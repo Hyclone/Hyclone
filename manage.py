@@ -14,11 +14,12 @@ import pathlib
 from typing import *
 from termcolor import cprint
 
-minetest_path = pathlib.Path("server/minetest/bin/minetest")
+minetest_path = pathlib.Path("./server/minetest/bin/minetestserver")
 
 def _start_world(name: str):
 	pass
 
+# TODO: remove
 def _start_worlds():
 	if not minetest_path.exists():
 		cprint("Minetest Server isn't build yet!", "red")
@@ -34,18 +35,30 @@ def start():
 	Exit all process normally then receiving SIGTERM.
 	"""
 	multiserver_process: Optional[subprocess.Popen] = None
-	minetest_processes: List[subprocess.Popen] = {}
+	minetest_processes: Dict[str, subprocess.Popen] = {}
 
 	def _on_exit(a,b):
 		cprint("Exiting Multiserver....", "yellow")
 		if multiserver_process:
 			multiserver_process.terminate()
+		
+		for world in minetest_processes:
+			cprint(f"Exiting world {world}....", "yellow")
+			minetest_processes[world].terminate()
+
 		exit(0)
 
 	signal.signal(signal.SIGTERM, _on_exit)
 	signal.signal(signal.SIGINT, _on_exit)
 
+	cprint("Starting Multiserver...", "green")
+
 	multiserver_process = subprocess.Popen(["./multiserver/mt-multiserver-proxy"])
+
+	for world in os.listdir("./worlds"):
+		cprint(f"Starting world {world}...", "green")
+		minetest_processes[world] = subprocess.Popen([minetest_path, "--world", f"./worlds/{world}", "--config", f"./worlds/{world}/minetest.conf"])
+
 	while True:
 		if multiserver_process.poll():
 			exit(1)
