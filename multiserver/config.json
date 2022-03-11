@@ -2,7 +2,11 @@
 	"Servers": [
 		{
 			"Name": "lobby",
-			"Addr": "minetest.local:30001"
+			"Addr": "localhost:30001"
+		},
+		{
+			"Name": "test",
+			"Addr": "localhost:30002"
 		}
 	],
 	"BindAddr": ":30000",

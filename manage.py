@@ -7,6 +7,7 @@ Main script of the Hyclone Minetest server
 """
 
 import os
+import time
 import signal
 import subprocess
 import fire
@@ -14,10 +15,11 @@ import pathlib
 from typing import *
 from termcolor import cprint
 
-minetest_path = pathlib.Path("./server/minetest/bin/minetestserver")
+pathlib.Path().absolute()
 
-def _start_world(name: str):
-	pass
+minetest_path = pathlib.Path("./server/minetest/bin/minetestserver")
+mineclone2_path = pathlib.Path("./games/MineClone2")
+
 
 # TODO: remove
 def _start_worlds():
@@ -27,12 +29,16 @@ def _start_worlds():
 	for world in os.listdir("./worlds"):
 		print(world)
 		subprocess.run(f"{minetest_path} --server --world worlds/{world}")
-		
+
+
+def _start_world(world: str) -> subprocess.Popen:
+	return subprocess.Popen([minetest_path, "--world", f"./worlds/{world}", "--config", f"./worlds/{world}/minetest.conf", "--logfile", f"./worlds/{world}/debug.txt"])
+
 
 def start():
 	"""
 	Start all minetest instances and multiserver.
-	Exit all process normally then receiving SIGTERM.
+	Exit all process normally then receiving SIGTERM or SIGINT.
 	"""
 	multiserver_process: Optional[subprocess.Popen] = None
 	minetest_processes: Dict[str, subprocess.Popen] = {}
@@ -57,11 +63,26 @@ def start():
 
 	for world in os.listdir("./worlds"):
 		cprint(f"Starting world {world}...", "green")
-		minetest_processes[world] = subprocess.Popen([minetest_path, "--world", f"./worlds/{world}", "--config", f"./worlds/{world}/minetest.conf"])
+		minetest_processes[world] = _start_world(world)
 
 	while True:
+		time.sleep(1)
 		if multiserver_process.poll():
+			cprint("Multiserver Crashed!", "red")
 			exit(1)
+		
+		for world in minetest_processes:
+			r = minetest_processes[world].poll()
+			if r != None:
+				if r == 0:
+					cprint(f"Restarting world {world}...", "green")
+					minetest_processes[world] = _start_world(world)
+					time.sleep(5)
+				else:
+					cprint(f"World {world} crashed! Restarting...", "red")
+					minetest_processes[world] = _start_world(world)
+					time.sleep(5)
+		
 
 
 git_minetest = "https://github.com/minetest/minetest"
@@ -106,8 +127,17 @@ def _update_build_server():
 		cprint("Updating Failed!", "red")
 		exit(1)
 
+
 def _link_game_server():
-	subprocess.run(["ln", "-s", "./games/MineClone2", "./server/minetest/games/MineClone2"])
+	link_minetest = pathlib.Path("./server/minetest/games/MineClone2")
+	link_multiserver = pathlib.Path("./multiserver/games/MineClone2")
+
+	if not link_minetest.exists():
+		pathlib.Path("./server/minetest/games/MineClone2").symlink_to(mineclone2_path.absolute())
+	if not link_multiserver.exists():
+		pathlib.Path("./multiserver/games/MineClone2").symlink_to(mineclone2_path.absolute())
+	# TODO: link mods
+
 
 def _compile_server():
 	"""
@@ -121,6 +151,7 @@ def _compile_server():
 	if r1.returncode != 0 or r2.returncode != 0:
 		cprint("Building Failed!", "red")
 		exit(1)
+
 
 def build_server(update: bool = True):
 	"""
@@ -145,4 +176,5 @@ def build_server(update: bool = True):
 fire.Fire({
 	"build_server": build_server,
 	"start": start,
+	"link": _link_game_server, # TEMP
 })

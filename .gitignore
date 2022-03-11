@@ -11,3 +11,6 @@ worlds/*/mesecon_actionqueue
 
 multiserver/mt-multiserver-proxy
 multiserver/latest.log
+multiserver/ban
+multiserver/auth
+multiserver/cache
