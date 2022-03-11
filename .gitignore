@@ -1,0 +1,13 @@
+.mypy_cache
+
+server/*
+!server/.gitkeep
+
+worlds/*/*.sqlite
+worlds/*/*.txt
+worlds/*/mcl_maps
+worlds/*/doc.mt
+worlds/*/mesecon_actionqueue
+
+multiserver/mt-multiserver-proxy
+multiserver/latest.log

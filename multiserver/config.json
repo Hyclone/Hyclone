@@ -1,0 +1,8 @@
+{
+	"Servers": [
+		{
+			"Name": "lobby",
+			"Addr": "minetest.local:30000"
+		}
+	]
+}
