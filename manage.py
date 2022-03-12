@@ -17,6 +17,7 @@ from termcolor import cprint
 
 minetest_path = pathlib.Path("./server/minetest/bin/minetestserver")
 mineclone2_path = pathlib.Path("./games/MineClone2")
+multiserver_path = pathlib.Path("./multiserver/mt-multiserver-proxy")
 
 
 def _start_world(world: str) -> subprocess.Popen:
@@ -76,7 +77,7 @@ def _multiserver_build_plugins():
 	for plugin in os.listdir("./multiserver/plugins"):
 		cprint(f"Building {plugin} plugin...", "green")
 		subprocess.run(["go", "build", "-buildmode=plugin"], cwd=f"./multiserver/plugins/{plugin}")
-	pass
+
 
 git_minetest = "https://github.com/minetest/minetest"
 git_irrlicht = "https://github.com/minetest/irrlicht"
@@ -127,11 +128,21 @@ def _link_game_server():
 	link_minetest = pathlib.Path("./server/minetest/games/MineClone2")
 	link_multiserver = pathlib.Path("./multiserver/games/MineClone2")
 
-	if not link_minetest.exists():
+	if link_minetest.exists() and link_minetest.is_symlink():
+		cprint("MineClone2 link already exists", "yellow")
+	else:
+		cprint("Linking MineClone2...", "green")
 		pathlib.Path("./server/minetest/games/MineClone2").symlink_to(mineclone2_path.absolute())
-	#if not link_multiserver.exists():
-	#	pathlib.Path("./multiserver/games/MineClone2").symlink_to(mineclone2_path.absolute())
-	# TODO: link mods
+
+	for mod in os.listdir("./mods"):
+		link_path = pathlib.Path(f"./server/minetest/mods/{mod}")
+		if link_path.exists() and link_minetest.is_symlink():
+			cprint(f"{mod} link already exists", "yellow")
+		else:
+			cprint(f"Linking {mod} mod...", "green")
+			link_path.symlink_to(pathlib.Path(f"./mods/{mod}").absolute())
+
+
 
 
 def _compile_server():
@@ -166,9 +177,43 @@ def build_server(update: bool = True):
 		_compile_server()
 	
 
+def setup():
+	"""
+	Install required dependencies
+	"""
+	cprint("Installing Multiserver....", "green")
+
+	r = subprocess.run(["go", "install", "github.com/HimbeerserverDE/mt-multiserver-proxy/cmd/mt-multiserver-proxy@latest"])
+	if r.returncode != 0:
+		cprint("Installing multiserver failed!", "red")
+		exit(1)
+	
+	cprint("Linking Multiserver binary....", "green")
+
+	try:
+		multiserver_path.symlink_to(pathlib.Path("~/go/bin/mt-multiserver-proxy").absolute())
+	except FileExistsError:
+		cprint("The link seems to already exist", "yellow")
+
+	cprint("Installing Minetest dependencies....", "green")
+
+	minetest_depends = [
+		"git", "g++", "make", "cmake", "build-essential",
+		"libjpeg8-dev", "libpng-dev", "zlib1g-dev", "libopengl-dev",
+		"libglx-dev", "libgl1-mesa-dev", "libx11-dev", "libxxf86vm-dev",
+		"libvorbis-dev", "libopenal-dev", "libsqlite3-dev", "libluajit-5.1-dev",
+		"libjsoncpp-dev", "libgmp-dev", "libcurl4-gnutls-dev", "libfreetype6-dev", "libzstd-dev"
+	]
+	r = subprocess.run(["sudo", "apt", "install", "-y"] + minetest_depends)
+	if r.returncode != 0:
+		cprint("Installing dependencies failed!", "red")
+		exit(1)	
+
+
 
 
 fire.Fire({
+	"setup": setup,
 	"build_server": build_server,
 	"start": start,
 	"link": _link_game_server, # TEMP
