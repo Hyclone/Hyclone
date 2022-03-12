@@ -15,24 +15,12 @@ import pathlib
 from typing import *
 from termcolor import cprint
 
-pathlib.Path().absolute()
-
 minetest_path = pathlib.Path("./server/minetest/bin/minetestserver")
 mineclone2_path = pathlib.Path("./games/MineClone2")
 
 
-# TODO: remove
-def _start_worlds():
-	if not minetest_path.exists():
-		cprint("Minetest Server isn't build yet!", "red")
-		exit(1)
-	for world in os.listdir("./worlds"):
-		print(world)
-		subprocess.run(f"{minetest_path} --server --world worlds/{world}")
-
-
 def _start_world(world: str) -> subprocess.Popen:
-	return subprocess.Popen([minetest_path, "--world", f"./worlds/{world}", "--config", f"./worlds/{world}/minetest.conf", "--logfile", f"./worlds/{world}/debug.txt"])
+	return subprocess.Popen(["minetest","--server", "--world", f"./worlds/{world}", "--config", f"./worlds/{world}/minetest.conf", "--logfile", f"./worlds/{world}/debug.txt"])
 
 
 def start():
@@ -84,7 +72,6 @@ def start():
 					time.sleep(5)
 		
 
-
 git_minetest = "https://github.com/minetest/minetest"
 git_irrlicht = "https://github.com/minetest/irrlicht"
 
@@ -122,10 +109,12 @@ def _update_build_server():
 	
 	cprint("Updating IrrlichtMT....", "green")
 
-	r = subprocess.run(["git", "clone", git_irrlicht, "./server/irrlicht"])
+	r = subprocess.run(["git", "pull"], cwd="./server/minetest/lig/irrlichtmt")
 	if r.returncode != 0:
 		cprint("Updating Failed!", "red")
 		exit(1)
+
+	subprocess.run(["git", "checkout", "5.5.0"], cwd="./server/minetest")
 
 
 def _link_game_server():
@@ -134,8 +123,8 @@ def _link_game_server():
 
 	if not link_minetest.exists():
 		pathlib.Path("./server/minetest/games/MineClone2").symlink_to(mineclone2_path.absolute())
-	if not link_multiserver.exists():
-		pathlib.Path("./multiserver/games/MineClone2").symlink_to(mineclone2_path.absolute())
+	#if not link_multiserver.exists():
+	#	pathlib.Path("./multiserver/games/MineClone2").symlink_to(mineclone2_path.absolute())
 	# TODO: link mods
 
 
@@ -158,7 +147,7 @@ def build_server(update: bool = True):
 	Build the Minetest server
 	"""
 	if update:
-		if os.path.exists("./server/minetest") and os.path.exists("./server/irrlicht"):
+		if os.path.exists("./server/minetest") and os.path.exists("./server/minetest/lib/irrlichtmt"):
 			_update_build_server()
 			_compile_server()
 		else:
