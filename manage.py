@@ -76,7 +76,15 @@ def start():
 def _multiserver_build_plugins():
 	for plugin in os.listdir("./multiserver/plugins"):
 		cprint(f"Building {plugin} plugin...", "green")
-		subprocess.run(["go", "build", "-buildmode=plugin"], cwd=f"./multiserver/plugins/{plugin}")
+
+		r = subprocess.run(["go", "build", "-buildmode=plugin"], cwd=f"./multiserver/plugins/{plugin}")
+		if r.returncode != 0:
+			cprint(f"Build of {plugin} failed!", "red")
+
+		out_path = pathlib.Path(f"./multiserver/plugins/{plugin}.so")
+
+		if not (out_path.exists() and out_path.is_symlink()):
+			out_path.symlink_to(pathlib.Path(f"./multiserver/plugins/{plugin}/{plugin}.so"))
 
 
 git_minetest = "https://github.com/minetest/minetest"
@@ -217,5 +225,5 @@ fire.Fire({
 	"build_server": build_server,
 	"start": start,
 	"link": _link_game_server, # TEMP
-	"build_plugins:": _multiserver_build_plugins,
+	"build_plugins": _multiserver_build_plugins,
 })
