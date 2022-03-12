@@ -74,17 +74,17 @@ def start():
 		
 
 def _multiserver_build_plugins():
-	for plugin in os.listdir("./multiserver/plugins"):
+	for plugin in os.listdir("./multiserver/plugins_src"):
 		cprint(f"Building {plugin} plugin...", "green")
 
-		r = subprocess.run(["go", "build", "-buildmode=plugin"], cwd=f"./multiserver/plugins/{plugin}")
+		r = subprocess.run(["go", "build", "-buildmode=plugin", "-o", pathlib.Path("./multiserver/plugins/").absolute()], cwd=f"./multiserver/plugins_src/{plugin}")
 		if r.returncode != 0:
 			cprint(f"Build of {plugin} failed!", "red")
 
-		out_path = pathlib.Path(f"./multiserver/plugins/{plugin}.so")
+		#out_path = pathlib.Path(f"./multiserver/plugins/{plugin}.so")
 
-		if not (out_path.exists() and out_path.is_symlink()):
-			out_path.symlink_to(pathlib.Path(f"./multiserver/plugins/{plugin}/{plugin}.so"))
+		#if not (out_path.exists() and out_path.is_symlink()):
+		#	out_path.symlink_to(pathlib.Path(f"./multiserver/plugins/{plugin}/{plugin}.so"))
 
 
 git_minetest = "https://github.com/minetest/minetest"
