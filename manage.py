@@ -196,12 +196,13 @@ def setup():
 		cprint("Installing multiserver failed!", "red")
 		exit(1)
 	
-	cprint("Linking Multiserver binary....", "green")
+	#cprint("Linking Multiserver binary....", "green")
 
-	try:
-		multiserver_path.symlink_to(pathlib.Path("~/go/bin/mt-multiserver-proxy").absolute())
-	except FileExistsError:
-		cprint("The link seems to already exist", "yellow")
+	#try:
+	#	print(pathlib.Path("~/go/bin/mt-multiserver-proxy").absolute())
+	#	multiserver_path.symlink_to(pathlib.Path("~/go/bin/mt-multiserver-proxy").absolute())
+	#except FileExistsError:
+	#	cprint("The link seems to already exist", "yellow")
 
 	cprint("Installing Minetest dependencies....", "green")
 
