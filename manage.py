@@ -72,6 +72,12 @@ def start():
 					time.sleep(5)
 		
 
+def _multiserver_build_plugins():
+	for plugin in os.listdir("./multiserver/plugins"):
+		cprint(f"Building {plugin} plugin...", "green")
+		subprocess.run(["go", "build", "-buildmode=plugin"], cwd=f"./multiserver/plugins/{plugin}")
+	pass
+
 git_minetest = "https://github.com/minetest/minetest"
 git_irrlicht = "https://github.com/minetest/irrlicht"
 
@@ -166,4 +172,5 @@ fire.Fire({
 	"build_server": build_server,
 	"start": start,
 	"link": _link_game_server, # TEMP
+	"build_plugins:": _multiserver_build_plugins,
 })

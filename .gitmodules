@@ -4,3 +4,6 @@
 [submodule "mods/mcl_welcome_hud"]
 	path = mods/mcl_welcome_hud
 	url = https://github.com/AFCMS/mcl_welcome_hud
+[submodule "multiserver/plugins/mt-multiserver-chatcommands"]
+	path = multiserver/plugins/mt-multiserver-chatcommands
+	url = https://github.com/HimbeerserverDE/mt-multiserver-chatcommands.git

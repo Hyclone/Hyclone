@@ -8,6 +8,7 @@ worlds/*/*.txt
 worlds/*/mcl_maps
 worlds/*/doc.mt
 worlds/*/mesecon_actionqueue
+worlds/*/mod_storage
 
 multiserver/mt-multiserver-proxy
 multiserver/latest.log
