@@ -7,3 +7,6 @@
 [submodule "multiserver/plugins_src/mt-multiserver-chatcommands"]
 	path = multiserver/plugins_src/mt-multiserver-chatcommands
 	url = https://github.com/HimbeerserverDE/mt-multiserver-chatcommands.git
+[submodule "multiserver/plugins_src/mt-multiserver-prometheus"]
+	path = multiserver/plugins_src/mt-multiserver-prometheus
+	url = https://github.com/Hyclone/mt-multiserver-prometheus

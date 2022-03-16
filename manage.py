@@ -20,17 +20,23 @@ mineclone2_path = pathlib.Path("./games/MineClone2")
 multiserver_path = pathlib.Path("./multiserver/mt-multiserver-proxy")
 
 
-def _start_world(world: str) -> subprocess.Popen:
-	return subprocess.Popen(["minetest","--server", "--world", f"./worlds/{world}", "--config", f"./worlds/{world}/minetest.conf", "--logfile", f"./worlds/{world}/debug.txt"])
+def _start_world(world: str, stdout: Optional[int] = None) -> subprocess.Popen:
+	return subprocess.Popen(["minetest","--server", "--world", f"./worlds/{world}", "--config", f"./worlds/{world}/minetest.conf", "--logfile", f"./worlds/{world}/debug.txt"], stdout=stdout)
 
 
-def start():
+def start(quick_debug: bool = False):
 	"""
 	Start all minetest instances and multiserver.
 	Exit all process normally then receiving SIGTERM or SIGINT.
 	"""
 	multiserver_process: Optional[subprocess.Popen] = None
 	minetest_processes: Dict[str, subprocess.Popen] = {}
+
+	minetest_out = None
+	if quick_debug:
+		minetest_out = None
+	else:
+		minetest_out = subprocess.DEVNULL
 
 	def _on_exit(a,b):
 		cprint("Exiting Multiserver....", "yellow")
@@ -52,7 +58,7 @@ def start():
 
 	for world in os.listdir("./worlds"):
 		cprint(f"Starting world {world}...", "green")
-		minetest_processes[world] = _start_world(world)
+		minetest_processes[world] = _start_world(world, minetest_out)
 
 	while True:
 		time.sleep(1)
