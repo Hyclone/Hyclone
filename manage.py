@@ -43,14 +43,13 @@ def download_tar(url: str, path: pathlib.Path):
 	file.extractall(path = path)
 
 
-##############
-#  Starting  #
-##############
-
-
 def _start_world(world: str, out: Optional[int] = None) -> subprocess.Popen:
-	return subprocess.Popen(["minetest","--server", "--world", f"./worlds/{world}", "--config", f"./worlds/{world}/minetest.conf", "--logfile", f"./worlds/{world}/debug.txt"], stdout=out, stderr=out)
+	return subprocess.Popen(["./server/minetest/bin/minetestserver", "--world", f"./worlds/{world}", "--config", f"./worlds/{world}/minetest.conf", "--logfile", f"./worlds/{world}/debug.txt"], stdout=out, stderr=out)
 
+
+###############
+#  Functions  #
+###############
 
 def start(quick_debug: bool = False, monitoring: bool = False):
 	"""
@@ -131,134 +130,12 @@ def start(quick_debug: bool = False, monitoring: bool = False):
 					time.sleep(5)
 		
 
-#################
-#  Multiserver  #
-#################
-
-
-def _multiserver_build_plugins():
-	for plugin in os.listdir("./multiserver/plugins_src"):
-		cprint(f"Building {plugin} plugin...", "green")
-
-		r = subprocess.run(["go", "build", "-buildmode=plugin", "-o", pathlib.Path("./multiserver/plugins/").absolute()], cwd=f"./multiserver/plugins_src/{plugin}")
-		if r.returncode != 0:
-			cprint(f"Build of {plugin} failed!", "red")
-
-		#out_path = pathlib.Path(f"./multiserver/plugins/{plugin}.so")
-
-		#if not (out_path.exists() and out_path.is_symlink()):
-		#	out_path.symlink_to(pathlib.Path(f"./multiserver/plugins/{plugin}/{plugin}.so"))
-
-
-####################
-#  Minetest Build  #
-####################
-
-
-git_minetest = "https://github.com/minetest/minetest"
-git_irrlicht = "https://github.com/minetest/irrlicht"
-
-
-def _remove_old_files_server():
-	cprint("Removing Old Files....", "green")
-
-	subprocess.run(["rm", "-rf", "./server/minetest"])
-	subprocess.run(["rm", "-rf", "./server/irrlicht"])
-
-
-def _hard_build_server():
-	cprint("Cloning Minetest....", "green")
-
-	r = subprocess.run(["git", "clone", git_minetest, "./server/minetest"])
-	if r.returncode != 0:
-		cprint("Cloning Failed!", "red")
-		exit(1)
-	
-	cprint("Cloning IrrlichtMT....", "green")
-
-	r = subprocess.run(["git", "clone", git_irrlicht, "./server/minetest/lib/irrlichtmt"])
-	if r.returncode != 0:
-		cprint("Cloning Failed!", "red")
-		exit(1)
-
-
-def _update_build_server():
-	cprint("Updating Minetest....", "green")
-
-	r = subprocess.run(["git", "pull"], cwd="./server/minetest")
-	if r.returncode != 0:
-		cprint("Updating Failed!", "red")
-		exit(1)
-	
-	cprint("Updating IrrlichtMT....", "green")
-
-	r = subprocess.run(["git", "pull"], cwd="./server/minetest/lig/irrlichtmt")
-	if r.returncode != 0:
-		cprint("Updating Failed!", "red")
-		exit(1)
-
-	subprocess.run(["git", "checkout", "5.5.0"], cwd="./server/minetest")
-
-
-def _link_game_server():
-	link_minetest = pathlib.Path("./server/minetest/games/MineClone2")
-	link_multiserver = pathlib.Path("./multiserver/games/MineClone2")
-
-	if link_minetest.exists() and link_minetest.is_symlink():
-		cprint("MineClone2 link already exists", "yellow")
-	else:
-		cprint("Linking MineClone2...", "green")
-		pathlib.Path("./server/minetest/games/MineClone2").symlink_to(mineclone2_path.absolute())
-
-	for mod in os.listdir("./mods"):
-		link_path = pathlib.Path(f"./server/minetest/mods/{mod}")
-		if link_path.exists() and link_minetest.is_symlink():
-			cprint(f"{mod} link already exists", "yellow")
-		else:
-			cprint(f"Linking {mod} mod...", "green")
-			link_path.symlink_to(pathlib.Path(f"./mods/{mod}").absolute())
-
-
-
-
-def _compile_server():
-	"""
-	Compile the files contained in ./server/minetest
-	"""
-	cprint("Building Minetest....", "green")
-
-	r1 = subprocess.run(["cmake", "-DRUN_IN_PLACE=TRUE", "-DBUILD_SERVER=TRUE", "-DBUILD_CLIENT=FALSE"], cwd="./server/minetest")
-	r2 = subprocess.run(["make", "-j$(nproc)"], cwd="./server/minetest", shell=True)
-
-	if r1.returncode != 0 or r2.returncode != 0:
-		cprint("Building Failed!", "red")
-		exit(1)
-
-
-def build_server(update: bool = True):
-	"""
-	Build the Minetest server
-	"""
-	if update:
-		if os.path.exists("./server/minetest") and os.path.exists("./server/minetest/lib/irrlichtmt"):
-			_update_build_server()
-			_compile_server()
-		else:
-			_hard_build_server()
-			_compile_server
-	else:
-		_remove_old_files_server()
-		_hard_build_server()
-		
-		_compile_server()
-	
-
-def setup(multiserver: bool = False, minetest: bool = False, monitoring: bool = False, force: bool = False):
+def setup(multiserver: bool = False, multiserver_plugins: bool = False, minetest: bool = False, monitoring: bool = False, force: bool = False):
 	"""
 	Setup the server environment
 	"""
 
-	if not multiserver and not minetest and not monitoring:
+	if not multiserver and not multiserver_plugins and not minetest and not monitoring:
 		cprint("You must specify which services to setup (see ./manage.py setup --help)", "red")
 		exit(1)
 
@@ -276,6 +153,14 @@ def setup(multiserver: bool = False, minetest: bool = False, monitoring: bool = 
 		#	multiserver_path.symlink_to(pathlib.Path("~/go/bin/mt-multiserver-proxy").absolute())
 		#except FileExistsError:
 		#	cprint("The link seems to already exist", "yellow")
+	
+	if multiserver_plugins:
+		for plugin in os.listdir("./multiserver/plugins_src"):
+			cprint(f"Building {plugin} plugin...", "green")
+
+			r = subprocess.run(["go", "build", "-buildmode=plugin", "-o", pathlib.Path("./multiserver/plugins/").absolute()], cwd=f"./multiserver/plugins_src/{plugin}")
+			if r.returncode != 0:
+				cprint(f"Build of {plugin} failed!", "red")
 	
 	if minetest:
 		if pathlib.Path("./server/minetest").exists():
@@ -302,6 +187,7 @@ def setup(multiserver: bool = False, minetest: bool = False, monitoring: bool = 
 		
 		cprint("Cloning Minetest....", "green")
 
+		git_minetest = "https://github.com/minetest/minetest"
 		r1 = subprocess.run(["git", "clone", git_minetest, "./server/minetest"])
 		r2 = subprocess.run(["git", "checkout", "5.4.1"], cwd="./server/minetest")
 		if r1.returncode != 0 or r2.returncode != 0:
@@ -317,6 +203,15 @@ def setup(multiserver: bool = False, minetest: bool = False, monitoring: bool = 
 		if r1.returncode != 0 or r2.returncode != 0:
 			cprint("Building Failed!", "red")
 			exit(1)
+		
+		cprint("Linking MineClone2...", "green")
+		pathlib.Path("./server/minetest/games/MineClone2").symlink_to(mineclone2_path.absolute())
+
+		for mod in os.listdir("./mods"):
+			link_path = pathlib.Path(f"./server/minetest/mods/{mod}")
+			cprint(f"Linking {mod} mod...", "green")
+			link_path.symlink_to(pathlib.Path(f"./mods/{mod}").absolute())
+
 
 	
 
@@ -349,10 +244,5 @@ def setup(multiserver: bool = False, minetest: bool = False, monitoring: bool = 
 
 fire.Fire({
 	"setup": setup,
-	"build_server": build_server,
 	"start": start,
-	"link": _link_game_server, # TEMP
-	#"download_prometheus": _download_prometheus,
-	#"download_grafana": _download_grafana,
-	"build_plugins": _multiserver_build_plugins,
 })
