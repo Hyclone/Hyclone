@@ -27,8 +27,8 @@ multiserver_path = pathlib.Path("./multiserver/mt-multiserver-proxy")
 ##############
 
 
-def _start_world(world: str, stdout: Optional[int] = None) -> subprocess.Popen:
-	return subprocess.Popen(["minetest","--server", "--world", f"./worlds/{world}", "--config", f"./worlds/{world}/minetest.conf", "--logfile", f"./worlds/{world}/debug.txt"], stdout=stdout)
+def _start_world(world: str, out: Optional[int] = None) -> subprocess.Popen:
+	return subprocess.Popen(["minetest","--server", "--world", f"./worlds/{world}", "--config", f"./worlds/{world}/minetest.conf", "--logfile", f"./worlds/{world}/debug.txt"], stdout=out, stderr=out)
 
 
 def start(quick_debug: bool = False, monitoring: bool = False):
