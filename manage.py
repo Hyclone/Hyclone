@@ -39,12 +39,13 @@ def start(quick_debug: bool = False, monitoring: bool = False):
 	multiserver_process: Optional[subprocess.Popen] = None
 	minetest_processes: Dict[str, subprocess.Popen] = {}
 	prometheus_process: Optional[subprocess.Popen] = None
+	grafana_process: Optional[subprocess.Popen] = None
 
-	minetest_out = None
+	out = None
 	if quick_debug:
-		minetest_out = None
+		out = None
 	else:
-		minetest_out = subprocess.DEVNULL
+		out = subprocess.DEVNULL
 
 	def _on_exit(a,b):
 		if multiserver_process:
@@ -58,6 +59,10 @@ def start(quick_debug: bool = False, monitoring: bool = False):
 		if prometheus_process:
 			cprint("Exiting Prometheus....", "yellow")
 			prometheus_process.terminate()
+		
+		if grafana_process:
+			cprint("Exiting Grafana....", "yellow")
+			grafana_process.terminate()
 
 		exit(0)
 
@@ -70,12 +75,14 @@ def start(quick_debug: bool = False, monitoring: bool = False):
 
 	for world in os.listdir("./worlds"):
 		cprint(f"Starting world {world}...", "green")
-		minetest_processes[world] = _start_world(world, minetest_out)
+		minetest_processes[world] = _start_world(world, out)
 
 	
 	if monitoring:
 		cprint("Starting Prometheus...", "green")
-		prometheus_process = subprocess.Popen(["./monitoring/prometheus-2.34.0.linux-amd64/prometheus"])
+		prometheus_process = subprocess.Popen(["./prometheus", "--config.file=../prometheus.yml"], cwd="./monitoring/prometheus-2.34.0.linux-amd64/", stdout=out, stderr=out)
+		cprint("Starting Grafana...", "green")
+		grafana_process = subprocess.Popen(["./bin/grafana-server"], cwd="./monitoring/grafana-8.4.4/", stdout=out, stderr=out)
 
 	while True:
 		time.sleep(1)
@@ -257,12 +264,19 @@ def setup():
 ################
 
 prometheus_url = "https://github.com/prometheus/prometheus/releases/download/v2.34.0/prometheus-2.34.0.linux-amd64.tar.gz"
-prometheus_outpath = pathlib.Path("./monitoring/")
+grafana_url = "https://dl.grafana.com/oss/release/grafana-8.4.4.linux-amd64.tar.gz"
+monitoring_path = pathlib.Path("./monitoring/")
+
 
 def _download_prometheus():
 	response = requests.get(prometheus_url, stream=True)
 	file = tarfile.open(fileobj=response.raw, mode="r|gz")
-	file.extractall(path=prometheus_outpath)
+	file.extractall(path=monitoring_path)
+
+def _download_grafana():
+	response = requests.get(grafana_url, stream=True)
+	file = tarfile.open(fileobj=response.raw, mode="r|gz")
+	file.extractall(path=monitoring_path)
 
 fire.Fire({
 	"setup": setup,
@@ -270,5 +284,6 @@ fire.Fire({
 	"start": start,
 	"link": _link_game_server, # TEMP
 	"download_prometheus": _download_prometheus,
+	"download_grafana": _download_grafana,
 	"build_plugins": _multiserver_build_plugins,
 })
