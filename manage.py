@@ -10,6 +10,8 @@ import os
 import time
 import signal
 import subprocess
+import requests
+import tarfile
 import fire
 import pathlib
 from typing import *
@@ -20,17 +22,23 @@ mineclone2_path = pathlib.Path("./games/MineClone2")
 multiserver_path = pathlib.Path("./multiserver/mt-multiserver-proxy")
 
 
+##############
+#  Starting  #
+##############
+
+
 def _start_world(world: str, stdout: Optional[int] = None) -> subprocess.Popen:
 	return subprocess.Popen(["minetest","--server", "--world", f"./worlds/{world}", "--config", f"./worlds/{world}/minetest.conf", "--logfile", f"./worlds/{world}/debug.txt"], stdout=stdout)
 
 
-def start(quick_debug: bool = False):
+def start(quick_debug: bool = False, monitoring: bool = False):
 	"""
 	Start all minetest instances and multiserver.
 	Exit all process normally then receiving SIGTERM or SIGINT.
 	"""
 	multiserver_process: Optional[subprocess.Popen] = None
 	minetest_processes: Dict[str, subprocess.Popen] = {}
+	prometheus_process: Optional[subprocess.Popen] = None
 
 	minetest_out = None
 	if quick_debug:
@@ -39,13 +47,17 @@ def start(quick_debug: bool = False):
 		minetest_out = subprocess.DEVNULL
 
 	def _on_exit(a,b):
-		cprint("Exiting Multiserver....", "yellow")
 		if multiserver_process:
+			cprint("Exiting Multiserver....", "yellow")
 			multiserver_process.terminate()
 		
 		for world in minetest_processes:
 			cprint(f"Exiting world {world}....", "yellow")
 			minetest_processes[world].terminate()
+		
+		if prometheus_process:
+			cprint("Exiting Prometheus....", "yellow")
+			prometheus_process.terminate()
 
 		exit(0)
 
@@ -59,6 +71,11 @@ def start(quick_debug: bool = False):
 	for world in os.listdir("./worlds"):
 		cprint(f"Starting world {world}...", "green")
 		minetest_processes[world] = _start_world(world, minetest_out)
+
+	
+	if monitoring:
+		cprint("Starting Prometheus...", "green")
+		prometheus_process = subprocess.Popen(["./monitoring/prometheus-2.34.0.linux-amd64/prometheus"])
 
 	while True:
 		time.sleep(1)
@@ -79,6 +96,11 @@ def start(quick_debug: bool = False):
 					time.sleep(5)
 		
 
+#################
+#  Multiserver  #
+#################
+
+
 def _multiserver_build_plugins():
 	for plugin in os.listdir("./multiserver/plugins_src"):
 		cprint(f"Building {plugin} plugin...", "green")
@@ -91,6 +113,11 @@ def _multiserver_build_plugins():
 
 		#if not (out_path.exists() and out_path.is_symlink()):
 		#	out_path.symlink_to(pathlib.Path(f"./multiserver/plugins/{plugin}/{plugin}.so"))
+
+
+####################
+#  Minetest Build  #
+####################
 
 
 git_minetest = "https://github.com/minetest/minetest"
@@ -225,12 +252,23 @@ def setup():
 		exit(1)	
 
 
+################
+#  Monitoring  #
+################
 
+prometheus_url = "https://github.com/prometheus/prometheus/releases/download/v2.34.0/prometheus-2.34.0.linux-amd64.tar.gz"
+prometheus_outpath = pathlib.Path("./monitoring/")
+
+def _download_prometheus():
+	response = requests.get(prometheus_url, stream=True)
+	file = tarfile.open(fileobj=response.raw, mode="r|gz")
+	file.extractall(path=prometheus_outpath)
 
 fire.Fire({
 	"setup": setup,
 	"build_server": build_server,
 	"start": start,
 	"link": _link_game_server, # TEMP
+	"download_prometheus": _download_prometheus,
 	"build_plugins": _multiserver_build_plugins,
 })
