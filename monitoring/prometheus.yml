@@ -11,4 +11,4 @@ scrape_configs:
   - job_name: "multiserver"
     scrape_interval: 10s
     static_configs:
-      - targets: ["localhost:5050"]
+      - targets: ["localhost:2112"]
