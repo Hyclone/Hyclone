@@ -22,6 +22,14 @@ mineclone2_path = pathlib.Path("./games/MineClone2")
 multiserver_path = pathlib.Path("./multiserver/mt-multiserver-proxy")
 
 
+def check_bin_exists(path: pathlib.Path):
+	if path.exists() and path.is_file():
+		return
+	else:
+		cprint(str(path) + " doesn't exist!", "red")
+		exit(1)
+
+
 ##############
 #  Starting  #
 ##############
@@ -47,6 +55,7 @@ def start(quick_debug: bool = False, monitoring: bool = False):
 	else:
 		out = subprocess.DEVNULL
 
+	# Signals Handling
 	def _on_exit(a,b):
 		if multiserver_process:
 			cprint("Exiting Multiserver....", "yellow")
@@ -69,20 +78,26 @@ def start(quick_debug: bool = False, monitoring: bool = False):
 	signal.signal(signal.SIGTERM, _on_exit)
 	signal.signal(signal.SIGINT, _on_exit)
 
+
+	# Starting Multiserver
 	cprint("Starting Multiserver...", "green")
 
 	multiserver_process = subprocess.Popen(["./multiserver/mt-multiserver-proxy"])
 
+
+	# Starting individual Minetest worlds
 	for world in os.listdir("./worlds"):
 		cprint(f"Starting world {world}...", "green")
 		minetest_processes[world] = _start_world(world, out)
 
-	
+
+	# Starting Prometheus and Grafana servers
 	if monitoring:
 		cprint("Starting Prometheus...", "green")
 		prometheus_process = subprocess.Popen(["./prometheus", "--config.file=../prometheus.yml"], cwd="./monitoring/prometheus-2.34.0.linux-amd64/", stdout=out, stderr=out)
 		cprint("Starting Grafana...", "green")
 		grafana_process = subprocess.Popen(["./bin/grafana-server"], cwd="./monitoring/grafana-8.4.4/", stdout=out, stderr=out)
+
 
 	while True:
 		time.sleep(1)
