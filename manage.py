@@ -53,7 +53,7 @@ def _start_world(world: str, out: Optional[int] = None) -> subprocess.Popen:
 
 def start(debug: bool = False, monitoring: bool = False):
 	"""
-	Start all minetest instances and multiserver.
+	Start multiserver, all minetest instances and monitoring if enabled.
 	Exit all process normally then receiving SIGTERM or SIGINT.
 	"""
 	# TODO: check if all required binaries are installed first
