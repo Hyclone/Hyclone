@@ -293,6 +293,7 @@ def _download_grafana():
 	file = tarfile.open(fileobj=response.raw, mode="r|gz")
 	file.extractall(path=monitoring_path)
 
+
 fire.Fire({
 	"setup": setup,
 	"build_server": build_server,
