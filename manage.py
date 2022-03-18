@@ -22,12 +22,25 @@ mineclone2_path = pathlib.Path("./games/MineClone2")
 multiserver_path = pathlib.Path("./multiserver/mt-multiserver-proxy")
 
 
+###########
+#  Utils  #
+###########
+
+#print(os.getenv("GOBIN"))
+
+
 def check_bin_exists(path: pathlib.Path):
 	if path.exists() and path.is_file():
 		return
 	else:
 		cprint(str(path) + " doesn't exist!", "red")
 		exit(1)
+
+
+def download_tar(url: str, path: pathlib.Path):
+	response = requests.get(url, stream = True)
+	file = tarfile.open(fileobj = response.raw, mode = "r|gz")
+	file.extractall(path = path)
 
 
 ##############
@@ -240,58 +253,98 @@ def build_server(update: bool = True):
 		_compile_server()
 	
 
-def setup():
+def setup(multiserver: bool = False, minetest: bool = False, monitoring: bool = False, force: bool = False):
 	"""
-	Install required dependencies
+	Setup the server environment
 	"""
-	cprint("Installing Multiserver....", "green")
 
-	r = subprocess.run(["go", "install", "github.com/HimbeerserverDE/mt-multiserver-proxy/cmd/mt-multiserver-proxy@latest"])
-	if r.returncode != 0:
-		cprint("Installing multiserver failed!", "red")
+	if not multiserver and not minetest and not monitoring:
+		cprint("You must specify which services to setup (see ./manage.py setup --help)", "red")
 		exit(1)
+
+	if multiserver:
+		cprint("Installing Multiserver....", "green")
+
+		r = subprocess.run(["go", "install", "github.com/HimbeerserverDE/mt-multiserver-proxy/cmd/mt-multiserver-proxy@latest"])
+		if r.returncode != 0:
+			cprint("Installing multiserver failed!", "red")
+			exit(1)
 	
-	#cprint("Linking Multiserver binary....", "green")
+		#cprint("Linking Multiserver binary....", "green")
+		#try:
+		#	print(pathlib.Path("~/go/bin/mt-multiserver-proxy").absolute())
+		#	multiserver_path.symlink_to(pathlib.Path("~/go/bin/mt-multiserver-proxy").absolute())
+		#except FileExistsError:
+		#	cprint("The link seems to already exist", "yellow")
+	
+	if minetest:
+		if pathlib.Path("./server/minetest").exists():
+			if force:
+				cprint("Removing old files...", "yellow")
+				subprocess.run(["rm", "-rf", "./server/minetest"])
+			else:
+				cprint("Minetest 5.4.1 Server is already installed! Force the reinstallation with the --force flag if you really need it.", "red")
+				exit(1)
+		
+		cprint("Installing Minetest dependencies....", "green")
 
-	#try:
-	#	print(pathlib.Path("~/go/bin/mt-multiserver-proxy").absolute())
-	#	multiserver_path.symlink_to(pathlib.Path("~/go/bin/mt-multiserver-proxy").absolute())
-	#except FileExistsError:
-	#	cprint("The link seems to already exist", "yellow")
+		minetest_depends = [
+			"git", "g++", "make", "cmake", "build-essential",
+			"libjpeg8-dev", "libpng-dev", "zlib1g-dev", "libopengl-dev",
+			"libglx-dev", "libgl1-mesa-dev", "libx11-dev", "libxxf86vm-dev",
+			"libvorbis-dev", "libopenal-dev", "libsqlite3-dev", "libluajit-5.1-dev",
+			"libjsoncpp-dev", "libgmp-dev", "libcurl4-gnutls-dev", "libfreetype6-dev", "libzstd-dev"
+		]
+		r = subprocess.run(["sudo", "apt", "install", "-y"] + minetest_depends)
+		if r.returncode != 0:
+			cprint("Installing dependencies failed!", "red")
+			exit(1)
+		
+		cprint("Cloning Minetest....", "green")
 
-	cprint("Installing Minetest dependencies....", "green")
+		r1 = subprocess.run(["git", "clone", git_minetest, "./server/minetest"])
+		r2 = subprocess.run(["git", "checkout", "5.4.1"], cwd="./server/minetest")
+		if r1.returncode != 0 or r2.returncode != 0:
+			cprint("Cloning Failed!", "red")
+			exit(1)
 
-	minetest_depends = [
-		"git", "g++", "make", "cmake", "build-essential",
-		"libjpeg8-dev", "libpng-dev", "zlib1g-dev", "libopengl-dev",
-		"libglx-dev", "libgl1-mesa-dev", "libx11-dev", "libxxf86vm-dev",
-		"libvorbis-dev", "libopenal-dev", "libsqlite3-dev", "libluajit-5.1-dev",
-		"libjsoncpp-dev", "libgmp-dev", "libcurl4-gnutls-dev", "libfreetype6-dev", "libzstd-dev"
-	]
-	r = subprocess.run(["sudo", "apt", "install", "-y"] + minetest_depends)
-	if r.returncode != 0:
-		cprint("Installing dependencies failed!", "red")
-		exit(1)	
+		cprint("Building Minetest....", "green")
+
+		# TODO: enable Prometheus client
+		r1 = subprocess.run(["cmake", "-DRUN_IN_PLACE=TRUE", "-DBUILD_SERVER=TRUE", "-DBUILD_CLIENT=FALSE"], cwd="./server/minetest")
+		r2 = subprocess.run(["make", "-j$(nproc)"], cwd="./server/minetest", shell=True)
+
+		if r1.returncode != 0 or r2.returncode != 0:
+			cprint("Building Failed!", "red")
+			exit(1)
+
+	
+
+	if monitoring:
+		prometheus_url = "https://github.com/prometheus/prometheus/releases/download/v2.34.0/prometheus-2.34.0.linux-amd64.tar.gz"
+		grafana_url = "https://dl.grafana.com/oss/release/grafana-8.4.4.linux-amd64.tar.gz"
+		monitoring_path = pathlib.Path("./monitoring/")
+
+		if pathlib.Path("./monitoring/prometheus-2.34.0.linux-amd64").exists():
+			if force:
+				cprint("Old Prometheus files will be overiden...", "yellow")
+			else:
+				cprint("Prometheus 3.34 is already installed! Force the reinstallation with the --force flag if you are sure this wont cause any data loss.", "red")
+				exit(1)
+		
+		if pathlib.Path("./monitoring/grafana-8.4.4.linux-amd64").exists():
+			if force:
+				cprint("Old Grafana files will be overiden...", "yellow")
+			else:
+				cprint("Grafana 8.4.4 is already installed! Force the reinstallation with the --force flag if you are sure this wont cause any data loss.", "red")
+				exit(1)
 
 
-################
-#  Monitoring  #
-################
+		cprint("Installing Prometheus 2.34....", "green")
+		download_tar(prometheus_url, monitoring_path)
 
-prometheus_url = "https://github.com/prometheus/prometheus/releases/download/v2.34.0/prometheus-2.34.0.linux-amd64.tar.gz"
-grafana_url = "https://dl.grafana.com/oss/release/grafana-8.4.4.linux-amd64.tar.gz"
-monitoring_path = pathlib.Path("./monitoring/")
-
-
-def _download_prometheus():
-	response = requests.get(prometheus_url, stream=True)
-	file = tarfile.open(fileobj=response.raw, mode="r|gz")
-	file.extractall(path=monitoring_path)
-
-def _download_grafana():
-	response = requests.get(grafana_url, stream=True)
-	file = tarfile.open(fileobj=response.raw, mode="r|gz")
-	file.extractall(path=monitoring_path)
+		cprint("Installing Grafana 8.4.4....", "green")
+		download_tar(grafana_url, monitoring_path)
 
 
 fire.Fire({
@@ -299,7 +352,7 @@ fire.Fire({
 	"build_server": build_server,
 	"start": start,
 	"link": _link_game_server, # TEMP
-	"download_prometheus": _download_prometheus,
-	"download_grafana": _download_grafana,
+	#"download_prometheus": _download_prometheus,
+	#"download_grafana": _download_grafana,
 	"build_plugins": _multiserver_build_plugins,
 })
