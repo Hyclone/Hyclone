@@ -51,18 +51,20 @@ def _start_world(world: str, out: Optional[int] = None) -> subprocess.Popen:
 #  Functions  #
 ###############
 
-def start(quick_debug: bool = False, monitoring: bool = False):
+def start(debug: bool = False, monitoring: bool = False):
 	"""
 	Start all minetest instances and multiserver.
 	Exit all process normally then receiving SIGTERM or SIGINT.
 	"""
+	# TODO: check if all required binaries are installed first
+
 	multiserver_process: Optional[subprocess.Popen] = None
 	minetest_processes: Dict[str, subprocess.Popen] = {}
 	prometheus_process: Optional[subprocess.Popen] = None
 	grafana_process: Optional[subprocess.Popen] = None
 
 	out = None
-	if quick_debug:
+	if debug:
 		out = None
 	else:
 		out = subprocess.DEVNULL
