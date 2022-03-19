@@ -1,11 +1,11 @@
 package main
 
 import (
-	"fmt"
+	"log"
 )
 
 func init() {
-	fmt.Println("Hello!")
+	log.Println("[mt-multiserver-hyclone-core] Hello!")
 	/*http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
         fmt.Fprintf(w, fmt.Sprint(proxy.Players()))
     })*/

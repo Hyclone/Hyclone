@@ -7,3 +7,4 @@ backend = sqlite3
 gameid = MineClone2
 world_name = lobby
 server_announce = false
+load_mod_mcl_welcome_hud = true
