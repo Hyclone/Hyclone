@@ -121,8 +121,9 @@ def start(debug: bool = False, monitoring: bool = False):
 	if monitoring:
 		cprint("Starting Prometheus...", "green")
 		prometheus_process = subprocess.Popen(["./prometheus", "--config.file=../prometheus.yml"], cwd="./monitoring/prometheus-2.34.0.linux-amd64/", stdout=out, stderr=out)
+		
 		cprint("Starting Grafana...", "green")
-		grafana_process = subprocess.Popen(["./bin/grafana-server"], cwd="./monitoring/grafana-8.4.4/", stdout=out, stderr=out)
+		grafana_process = subprocess.Popen(["./bin/grafana-server", "--pluginsDir", "./plugins"], cwd="./monitoring/grafana-8.4.4/", stdout=out, stderr=out)
 
 
 	while True:
@@ -136,11 +137,11 @@ def start(debug: bool = False, monitoring: bool = False):
 			if r != None:
 				if r == 0:
 					cprint(f"Restarting world {world}...", "green")
-					minetest_processes[world] = _start_world(world)
+					minetest_processes[world] = _start_world(world, out)
 					time.sleep(5)
 				else:
 					cprint(f"World {world} crashed! Restarting...", "red")
-					minetest_processes[world] = _start_world(world)
+					minetest_processes[world] = _start_world(world, out)
 					time.sleep(5)
 		
 
