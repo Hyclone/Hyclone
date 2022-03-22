@@ -100,7 +100,7 @@ def start(debug: bool = False, monitoring: bool = False):
 	# Starting Redis
 	cprint("Starting Redis...", "green")
 
-	redis_process = subprocess.Popen(["./redis-stable/src/redis-server", "./redis.conf"], cwd="./database")
+	redis_process = subprocess.Popen(["./redis-stable/src/redis-server", "./redis.conf"], cwd="./database", stdout=out, stderr=out)
 
 	time.sleep(2)
 
@@ -123,7 +123,7 @@ def start(debug: bool = False, monitoring: bool = False):
 		prometheus_process = subprocess.Popen(["./prometheus", "--config.file=../prometheus.yml"], cwd="./monitoring/prometheus-2.34.0.linux-amd64/", stdout=out, stderr=out)
 		
 		cprint("Starting Grafana...", "green")
-		grafana_process = subprocess.Popen(["./bin/grafana-server", "--pluginsDir", "./plugins"], cwd="./monitoring/grafana-8.4.4/", stdout=out, stderr=out)
+		grafana_process = subprocess.Popen(["./bin/grafana-server", "--config", "../grafana.ini"], cwd="./monitoring/grafana-8.4.4/", stdout=out, stderr=out)
 
 
 	while True:
