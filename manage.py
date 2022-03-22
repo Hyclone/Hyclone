@@ -58,6 +58,7 @@ def start(debug: bool = False, monitoring: bool = False):
 	"""
 	# TODO: check if all required binaries are installed first
 
+	redis_process: Optional[subprocess.Popen] = None
 	multiserver_process: Optional[subprocess.Popen] = None
 	minetest_processes: Dict[str, subprocess.Popen] = {}
 	prometheus_process: Optional[subprocess.Popen] = None
@@ -86,11 +87,22 @@ def start(debug: bool = False, monitoring: bool = False):
 		if grafana_process:
 			cprint("Exiting Grafana....", "yellow")
 			grafana_process.terminate()
+		
+		if redis_process:
+			cprint("Exiting Redis Server....", "yellow")
+			subprocess.run(["./database/redis-stable/src/redis-cli", "shutdown"])
 
 		exit(0)
 
 	signal.signal(signal.SIGTERM, _on_exit)
 	signal.signal(signal.SIGINT, _on_exit)
+
+	# Starting Redis
+	cprint("Starting Redis...", "green")
+
+	redis_process = subprocess.Popen(["./redis-stable/src/redis-server", "./redis.conf"], cwd="./database")
+
+	time.sleep(2)
 
 
 	# Starting Multiserver
@@ -132,14 +144,15 @@ def start(debug: bool = False, monitoring: bool = False):
 					time.sleep(5)
 		
 
-def setup(multiserver: bool = False, multiserver_plugins: bool = False, minetest: bool = False, monitoring: bool = False, force: bool = False):
+def setup(multiserver: bool = False, multiserver_plugins: bool = False, minetest: bool = False, monitoring: bool = False, redis: bool = False, force: bool = False):
 	"""
 	Setup the server environment
 	"""
 
-	if not multiserver and not multiserver_plugins and not minetest and not monitoring:
+	if not multiserver and not multiserver_plugins and not minetest and not monitoring and not redis:
 		cprint("You must specify which services to setup (see ./manage.py setup --help)", "red")
 		exit(1)
+	
 
 	if multiserver:
 		cprint("Installing Multiserver....", "green")
@@ -155,7 +168,8 @@ def setup(multiserver: bool = False, multiserver_plugins: bool = False, minetest
 		#	multiserver_path.symlink_to(pathlib.Path("~/go/bin/mt-multiserver-proxy").absolute())
 		#except FileExistsError:
 		#	cprint("The link seems to already exist", "yellow")
-	
+
+
 	if multiserver_plugins:
 		for plugin in os.listdir("./multiserver/plugins_src"):
 			cprint(f"Building {plugin} plugin...", "green")
@@ -163,7 +177,8 @@ def setup(multiserver: bool = False, multiserver_plugins: bool = False, minetest
 			r = subprocess.run(["go", "build", "-buildmode=plugin", "-o", pathlib.Path("./multiserver/plugins/").absolute()], cwd=f"./multiserver/plugins_src/{plugin}")
 			if r.returncode != 0:
 				cprint(f"Build of {plugin} failed!", "red")
-	
+
+
 	if minetest:
 		if pathlib.Path("./server/minetest").exists():
 			if force:
@@ -215,7 +230,6 @@ def setup(multiserver: bool = False, multiserver_plugins: bool = False, minetest
 			link_path.symlink_to(pathlib.Path(f"./mods/{mod}").absolute())
 
 
-	
 
 	if monitoring:
 		prometheus_url = "https://github.com/prometheus/prometheus/releases/download/v2.34.0/prometheus-2.34.0.linux-amd64.tar.gz"
@@ -242,6 +256,30 @@ def setup(multiserver: bool = False, multiserver_plugins: bool = False, minetest
 
 		cprint("Installing Grafana 8.4.4....", "green")
 		download_tar(grafana_url, monitoring_path)
+
+
+	if redis:
+		redis_url = "http://download.redis.io/redis-stable.tar.gz"
+		database_path = pathlib.Path("./database/")
+
+		if pathlib.Path("./database/redis-stable").exists():
+			if force:
+				cprint("Old Redis files will be overiden...", "yellow")
+			else:
+				cprint("Redis Stable is already installed! Force the reinstallation with the --force flag if you are sure this wont cause any data loss.", "red")
+				exit(1)
+
+		cprint("Installing Redis Stable....", "green")
+		download_tar(redis_url, database_path)
+
+		# We put a prefix to not conflict with the system installation
+		cprint("Building Redis Stable....", "green")
+		subprocess.run(["make"], cwd="./database/redis-stable")
+
+		# https://grafana.com/grafana/plugins/redis-datasource/
+		if pathlib.Path("./monitoring/grafana-8.4.4").exists():
+			cprint("Grafana found, installing grafana-redis", "green")
+			subprocess.run(["./bin/grafana-cli", "--pluginsDir", "./plugins", "plugins", "install", "redis-datasource"], cwd="./monitoring/grafana-8.4.4/")
 
 
 fire.Fire({
