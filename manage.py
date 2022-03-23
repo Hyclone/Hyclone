@@ -130,6 +130,7 @@ def start(debug: bool = False, monitoring: bool = False):
 		time.sleep(1)
 		if multiserver_process.poll():
 			cprint("Multiserver Crashed!", "red")
+			# TODO: stop other services
 			exit(1)
 		
 		for world in minetest_processes:
