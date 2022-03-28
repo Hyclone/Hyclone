@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
-__author__ = "AFCM"
-
-r"""
+"""
 Main script of the Hyclone Minetest server
 """
+
+__author__ = "AFCM"
+__version__ = "1.0"
 
 import os
 import time
