@@ -1,4 +1,4 @@
 fire==0.4.0
-termcolor==1.1.0
+termcolor==2.2.0
 types-termcolor==1.1.4
 types-requests==2.27.30
